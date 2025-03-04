@@ -1,0 +1,57 @@
+# https://kubernetes.io/docs/concepts/workloads/pods/
+apiVersion: v1
+kind: Pod
+metadata:
+  name: food-pod
+  labels:
+    app: food-pod
+spec:
+  containers:
+    - name: food-pod
+      image: 209479263702.dkr.ecr.us-east-1.amazonaws.com/tech-challenge-grupo-53/food-app:latest
+      imagePullPolicy: Always
+      ports:
+        - containerPort: 8080
+      env:
+        - name: APP_NAME
+          value: grupo-53-food
+        - name: APP_ENV
+          value: "development"
+        - name: HTTP_URL
+          value: 0.0.0.0
+        - name: HTTP_PORT
+          value: "8080"
+        - name: HTTP_ALLOWED_ORIGINS
+          value: "http://127.0.0.1:3000,http://127.0.0.1:5173"
+        - name: DB_CONNECTION
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: DB_CONNECTION
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: DB_NAME
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: food-postgres-opaque-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: food-postgres-opaque-secret
+              key: DB_PASSWORD
+  imagePullSecrets:
+    - name: aws-ecr-registry

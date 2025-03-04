@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: food-app-deployment
+  labels:
+    app: food-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: food-app-deployment
+  template:
+    metadata:
+      labels:
+        app: food-app-deployment
+    spec:
+      containers:
+        - name: food-pod
+          image: 209479263702.dkr.ecr.us-east-1.amazonaws.com/tech-challenge-grupo-53/food-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_NAME
+              value: grupo-53-food
+            - name: APP_ENV
+              value: "development"
+            - name: HTTP_URL
+              value: 0.0.0.0
+            - name: HTTP_PORT
+              value: "8080"
+            - name: HTTP_ALLOWED_ORIGINS
+              value: "http://127.0.0.1:3000,http://127.0.0.1:5173"
+            - name: DB_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB_CONNECTION
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: food-postgres-opaque-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: food-postgres-opaque-secret
+                  key: DB_PASSWORD
+          livenessProbe:
+            httpGet:
+              path: /v1/health/liveness
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health/liveness
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 700m
+              memory: 1024Mi
+      imagePullSecrets:
+        - name: aws-ecr-registry

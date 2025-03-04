@@ -1,0 +1,16 @@
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres-config
+data:
+  DB_CONNECTION: postgres
+  DB_HOST: postgres-svc
+  DB_PORT: "5432"
+  DB_NAME: grupo53food
+  postgresql.conf: |
+    max_connections = 100
+    shared_buffers = 256MB
+    log_statement = 'all'
