@@ -81,32 +81,32 @@ resource "aws_iam_role_policy_attachment" "eks_ec2_container_registry_attachment
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# Cluster EKS (comentado para ativar quando quiser provisionar)
-# resource "aws_eks_cluster" "fastfood_cluster" {
-#   name     = "pollos-hermanos"
-#   role_arn = aws_iam_role.eks_cluster_role.arn
+# ✅ **Uncommented: Cluster EKS**
+resource "aws_eks_cluster" "fastfood_cluster" {
+  name     = "pollos-hermanos"
+  role_arn = aws_iam_role.eks_cluster_role.arn
 
-#   vpc_config {
-#     subnet_ids = [
-#       aws_subnet.eks_subnet_1.id,
-#       aws_subnet.eks_subnet_2.id
-#     ]
-#   }
-# }
+  vpc_config {
+    subnet_ids = [
+      aws_subnet.eks_subnet_1.id,
+      aws_subnet.eks_subnet_2.id
+    ]
+  }
+}
 
-# Node Group para EKS (comentado para ativar quando quiser provisionar)
-# resource "aws_eks_node_group" "fastfood_nodes" {
-#   cluster_name    = aws_eks_cluster.fastfood_cluster.name
-#   node_group_name = "fastfood-nodes"
-#   node_role_arn   = aws_iam_role.eks_node_group_role.arn
-#   subnet_ids      = [
-#     aws_subnet.eks_subnet_1.id,
-#     aws_subnet.eks_subnet_2.id
-#   ]
+# ✅ **Uncommented: Node Group para EKS**
+resource "aws_eks_node_group" "fastfood_nodes" {
+  cluster_name    = aws_eks_cluster.fastfood_cluster.name
+  node_group_name = "fastfood-nodes"
+  node_role_arn   = aws_iam_role.eks_node_group_role.arn
+  subnet_ids      = [
+    aws_subnet.eks_subnet_1.id,
+    aws_subnet.eks_subnet_2.id
+  ]
 
-#   scaling_config {
-#     desired_size = 2
-#     max_size     = 3
-#     min_size     = 1
-#   }
-# }
+  scaling_config {
+    desired_size = 2
+    max_size     = 3
+    min_size     = 1
+  }
+}
