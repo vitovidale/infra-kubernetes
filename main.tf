@@ -3,16 +3,18 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# ✅ Retrieve Existing VPC (Ensure Only One is Selected)
+# ✅ **Use a Specific VPC ID**
 data "aws_vpc" "existing_vpc" {
-  filter {
-    name   = "tag:Name"
-    values = ["eks-vpc"]
-  }
-  filter {
-    name   = "is-default"
-    values = ["false"]
-  }
+  id = "vpc-058954d5c60526128"  # <-- Replace with your actual VPC ID
+}
+
+# ✅ **Use Specific Subnet IDs**
+data "aws_subnet" "existing_subnet_1" {
+  id = "subnet-0e8a9c57e24921ad2"  # <-- Replace with your actual Subnet ID for us-east-1a
+}
+
+data "aws_subnet" "existing_subnet_2" {
+  id = "subnet-054f5e7046e524dc7"  # <-- Replace with your actual Subnet ID for us-east-1b
 }
 
 # ✅ Retrieve Existing IAM Role for EKS Cluster
@@ -23,29 +25,6 @@ data "aws_iam_role" "existing_eks_cluster_role" {
 # ✅ Retrieve Existing IAM Role for EKS Node Group
 data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
-}
-
-# ✅ Retrieve Existing Subnets (Ensure Only One is Selected Per AZ)
-data "aws_subnet" "existing_subnet_1" {
-  filter {
-    name   = "tag:Name"
-    values = ["eks-subnet-1"]
-  }
-  filter {
-    name   = "availability-zone"
-    values = ["us-east-1a"]
-  }
-}
-
-data "aws_subnet" "existing_subnet_2" {
-  filter {
-    name   = "tag:Name"
-    values = ["eks-subnet-2"]
-  }
-  filter {
-    name   = "availability-zone"
-    values = ["us-east-1b"]
-  }
 }
 
 # ✅ Create the EKS Cluster Using Existing VPC & IAM Role
