@@ -3,11 +3,15 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# ✅ Retrieve Existing VPC Instead of Creating a New One
+# ✅ Retrieve Existing VPC (Ensure Only One is Selected)
 data "aws_vpc" "existing_vpc" {
   filter {
     name   = "tag:Name"
     values = ["eks-vpc"]
+  }
+  filter {
+    name   = "is-default"
+    values = ["false"]
   }
 }
 
@@ -21,11 +25,15 @@ data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
 }
 
-# ✅ Retrieve Existing Subnets
+# ✅ Retrieve Existing Subnets (Ensure Only One is Selected Per AZ)
 data "aws_subnet" "existing_subnet_1" {
   filter {
     name   = "tag:Name"
     values = ["eks-subnet-1"]
+  }
+  filter {
+    name   = "availability-zone"
+    values = ["us-east-1a"]
   }
 }
 
@@ -33,6 +41,10 @@ data "aws_subnet" "existing_subnet_2" {
   filter {
     name   = "tag:Name"
     values = ["eks-subnet-2"]
+  }
+  filter {
+    name   = "availability-zone"
+    values = ["us-east-1b"]
   }
 }
 
