@@ -40,16 +40,8 @@ resource "aws_eks_cluster" "fastfood_cluster" {
   }
 }
 
-data "aws_security_group" "existing_eks_nodes_sg" {
-  filter {
-    name   = "tag:Name"
-    values = ["eks-nodes-security-group"]
-  }
-}
-
+# ✅ Create a New Security Group for Worker Nodes
 resource "aws_security_group" "eks_nodes_sg" {
-  count = length(data.aws_security_group.existing_eks_nodes_sg.id) > 0 ? 0 : 1
-
   vpc_id = data.aws_vpc.existing_vpc.id
 
   ingress {
@@ -58,6 +50,14 @@ resource "aws_security_group" "eks_nodes_sg" {
     protocol    = "-1"
     self        = true
     description = "Allow nodes to communicate with each other"
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow worker nodes to communicate with EKS control plane"
   }
 
   egress {
@@ -88,6 +88,12 @@ resource "aws_eks_node_group" "fastfood_nodes" {
     data.aws_subnet.existing_subnet_1.id,
     data.aws_subnet.existing_subnet_2.id
   ]
+
+  # ✅ Attach worker nodes to the security group
+  remote_access {
+    ec2_ssh_key               = "eks-key-pair"
+    source_security_group_ids = [aws_security_group.eks_nodes_sg.id]
+  }
 
   scaling_config {
     desired_size = 2
