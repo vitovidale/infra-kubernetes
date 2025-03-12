@@ -1,34 +1,33 @@
-name: Deploy API Gateway & Lambda
+name: Deploy Infra to AWS (EKS)
 
 on:
   push:
     branches:
-      - develop
-  pull_request:
-    branches:
-      - main
+      - main  # Deploy infra only when merging to main
+  workflow_dispatch:  # Allow manual deployment trigger
 
 jobs:
-  deploy:
+  deploy-infra:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do Código
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Configurar AWS CLI
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Instalar AWS SAM CLI
-        run: |
-          pip install aws-sam-cli
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
 
-      - name: Build do Lambda
-        run: sam build
+      - name: Initialize Terraform
+        run: terraform init
 
-      - name: Deploy do Lambda
-        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+      - name: Apply Terraform (Provision Infra)
+        run: terraform apply -auto-approve
