@@ -3,105 +3,61 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Criação da VPC para o EKS
-resource "aws_vpc" "eks_vpc" {
-  cidr_block = "10.0.0.0/16"
-  enable_dns_support = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "eks-vpc"
+# ✅ Retrieve Existing VPC Instead of Creating a New One
+data "aws_vpc" "existing_vpc" {
+  filter {
+    name   = "tag:Name"
+    values = ["eks-vpc"]
   }
 }
 
-# Subnets públicas
-resource "aws_subnet" "eks_subnet_1" {
-  vpc_id            = aws_vpc.eks_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
-
-  tags = {
-    Name = "eks-subnet-1"
-  }
-}
-
-resource "aws_subnet" "eks_subnet_2" {
-  vpc_id            = aws_vpc.eks_vpc.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1b"
-
-  tags = {
-    Name = "eks-subnet-2"
-  }
-}
-
-# IAM Role para o EKS Cluster
-resource "aws_iam_role" "eks_cluster_role" {
+# ✅ Retrieve Existing IAM Role for EKS Cluster
+data "aws_iam_role" "existing_eks_cluster_role" {
   name = "eks-cluster-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = { Service = "eks.amazonaws.com" },
-      Action = "sts:AssumeRole"
-    }]
-  })
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attachment" {
-  role       = aws_iam_role.eks_cluster_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-# IAM Role para os Nodes EC2 do EKS
-resource "aws_iam_role" "eks_node_group_role" {
+# ✅ Retrieve Existing IAM Role for EKS Node Group
+data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = { Service = "ec2.amazonaws.com" },
-      Action = "sts:AssumeRole"
-    }]
-  })
 }
 
-resource "aws_iam_role_policy_attachment" "eks_node_policy_attachment" {
-  role       = aws_iam_role.eks_node_group_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+# ✅ Retrieve Existing Subnets
+data "aws_subnet" "existing_subnet_1" {
+  filter {
+    name   = "tag:Name"
+    values = ["eks-subnet-1"]
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cni_policy_attachment" {
-  role       = aws_iam_role.eks_node_group_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+data "aws_subnet" "existing_subnet_2" {
+  filter {
+    name   = "tag:Name"
+    values = ["eks-subnet-2"]
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "eks_ec2_container_registry_attachment" {
-  role       = aws_iam_role.eks_node_group_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-# ✅ **Uncommented: Cluster EKS**
+# ✅ Create the EKS Cluster Using Existing VPC & IAM Role
 resource "aws_eks_cluster" "fastfood_cluster" {
   name     = "pollos-hermanos"
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = data.aws_iam_role.existing_eks_cluster_role.arn
 
   vpc_config {
     subnet_ids = [
-      aws_subnet.eks_subnet_1.id,
-      aws_subnet.eks_subnet_2.id
+      data.aws_subnet.existing_subnet_1.id,
+      data.aws_subnet.existing_subnet_2.id
     ]
+    vpc_id = data.aws_vpc.existing_vpc.id
   }
 }
 
-# ✅ **Uncommented: Node Group para EKS**
+# ✅ Create the EKS Node Group Using Existing IAM Role
 resource "aws_eks_node_group" "fastfood_nodes" {
   cluster_name    = aws_eks_cluster.fastfood_cluster.name
   node_group_name = "fastfood-nodes"
-  node_role_arn   = aws_iam_role.eks_node_group_role.arn
+  node_role_arn   = data.aws_iam_role.existing_eks_node_group_role.arn
   subnet_ids      = [
-    aws_subnet.eks_subnet_1.id,
-    aws_subnet.eks_subnet_2.id
+    data.aws_subnet.existing_subnet_1.id,
+    data.aws_subnet.existing_subnet_2.id
   ]
 
   scaling_config {
