@@ -26,6 +26,12 @@ data "aws_eks_cluster" "existing_cluster" {
   name = "pollos-hermanos"
 }
 
+# ✅ Check if the Node Group Already Exists
+data "aws_eks_node_group" "existing_node_group" {
+  cluster_name    = "pollos-hermanos"
+  node_group_name = "fastfood-nodes"
+}
+
 resource "aws_eks_cluster" "fastfood_cluster" {
   count = length(data.aws_eks_cluster.existing_cluster.id) > 0 ? 0 : 1
 
@@ -40,7 +46,6 @@ resource "aws_eks_cluster" "fastfood_cluster" {
   }
 }
 
-# ✅ Create Security Group if Missing
 resource "aws_security_group" "eks_nodes_sg" {
   vpc_id = data.aws_vpc.existing_vpc.id
 
@@ -81,8 +86,10 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 }
 
-# ✅ Reference the Newly Created Security Group
+# ✅ Only Create the Node Group If It Does Not Exist
 resource "aws_eks_node_group" "fastfood_nodes" {
+  count = length(data.aws_eks_node_group.existing_node_group.id) > 0 ? 0 : 1
+
   cluster_name    = "pollos-hermanos"
   node_group_name = "fastfood-nodes"
   node_role_arn   = data.aws_iam_role.existing_eks_node_group_role.arn
@@ -90,11 +97,6 @@ resource "aws_eks_node_group" "fastfood_nodes" {
     data.aws_subnet.existing_subnet_1.id,
     data.aws_subnet.existing_subnet_2.id
   ]
-
-  remote_access {
-    ec2_ssh_key               = "eks-key-pair"
-    source_security_group_ids = [aws_security_group.eks_nodes_sg.id]
-  }
 
   scaling_config {
     desired_size = 2
