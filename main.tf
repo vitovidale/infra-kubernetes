@@ -2,6 +2,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
+# ✅ Use Existing VPC & Subnets
 data "aws_vpc" "existing_vpc" {
   id = "vpc-035823898b0432060"
 }
@@ -22,18 +23,15 @@ data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
 }
 
+# ✅ Check if EKS Cluster Exists
 data "aws_eks_cluster" "existing_cluster" {
   name = "pollos-hermanos"
+  count = length(aws_eks_cluster.fastfood_cluster) > 0 ? 0 : 1
 }
 
-# ✅ Check if the Node Group Already Exists
-data "aws_eks_node_group" "existing_node_group" {
-  cluster_name    = "pollos-hermanos"
-  node_group_name = "fastfood-nodes"
-}
-
+# ✅ Create EKS Cluster If It Doesn't Exist
 resource "aws_eks_cluster" "fastfood_cluster" {
-  count = length(data.aws_eks_cluster.existing_cluster.id) > 0 ? 0 : 1
+  count = length(data.aws_eks_cluster.existing_cluster) > 0 ? 0 : 1
 
   name     = "pollos-hermanos"
   role_arn = data.aws_iam_role.existing_eks_cluster_role.arn
@@ -46,6 +44,7 @@ resource "aws_eks_cluster" "fastfood_cluster" {
   }
 }
 
+# ✅ Create Security Group for EKS Nodes
 resource "aws_security_group" "eks_nodes_sg" {
   vpc_id = data.aws_vpc.existing_vpc.id
 
@@ -86,9 +85,16 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 }
 
-# ✅ Only Create the Node Group If It Does Not Exist
+# ✅ Check if Node Group Exists
+data "aws_eks_node_group" "existing_node_group" {
+  cluster_name    = "pollos-hermanos"
+  node_group_name = "fastfood-nodes"
+  count = length(aws_eks_node_group.fastfood_nodes) > 0 ? 0 : 1
+}
+
+# ✅ Create Node Group If It Doesn't Exist
 resource "aws_eks_node_group" "fastfood_nodes" {
-  count = length(data.aws_eks_node_group.existing_node_group.id) > 0 ? 0 : 1
+  count = length(data.aws_eks_node_group.existing_node_group) > 0 ? 0 : 1
 
   cluster_name    = "pollos-hermanos"
   node_group_name = "fastfood-nodes"
