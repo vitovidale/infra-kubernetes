@@ -13,12 +13,20 @@ data "aws_subnet" "existing_subnet_1" {
     name   = "tag:Name"
     values = ["eks-subnet-1"]
   }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.existing_vpc.id]
+  }
 }
 
 data "aws_subnet" "existing_subnet_2" {
   filter {
     name   = "tag:Name"
     values = ["eks-subnet-2"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.existing_vpc.id]
   }
 }
 
@@ -37,11 +45,11 @@ resource "aws_eks_cluster" "fastfood_cluster" {
   role_arn = data.aws_iam_role.existing_eks_cluster_role.arn
 
   vpc_config {
-    subnet_ids = [
+    subnet_ids              = [
       data.aws_subnet.existing_subnet_1.id,
       data.aws_subnet.existing_subnet_2.id
     ]
-    endpoint_public_access = true
+    endpoint_public_access  = true
     endpoint_private_access = false
   }
 }
