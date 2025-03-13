@@ -23,16 +23,8 @@ data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
 }
 
-# ✅ Check if EKS Cluster Exists
-data "aws_eks_cluster" "existing_cluster" {
-  name = "pollos-hermanos"
-  count = length(aws_eks_cluster.fastfood_cluster) > 0 ? 0 : 1
-}
-
-# ✅ Create EKS Cluster If It Doesn't Exist
+# ✅ CREATE EKS Cluster (No Dependency on `data` Lookup)
 resource "aws_eks_cluster" "fastfood_cluster" {
-  count = length(data.aws_eks_cluster.existing_cluster) > 0 ? 0 : 1
-
   name     = "pollos-hermanos"
   role_arn = data.aws_iam_role.existing_eks_cluster_role.arn
 
@@ -44,7 +36,7 @@ resource "aws_eks_cluster" "fastfood_cluster" {
   }
 }
 
-# ✅ Create Security Group for EKS Nodes
+# ✅ CREATE Security Group for Nodes
 resource "aws_security_group" "eks_nodes_sg" {
   vpc_id = data.aws_vpc.existing_vpc.id
 
@@ -85,18 +77,9 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 }
 
-# ✅ Check if Node Group Exists
-data "aws_eks_node_group" "existing_node_group" {
-  cluster_name    = "pollos-hermanos"
-  node_group_name = "fastfood-nodes"
-  count = length(aws_eks_node_group.fastfood_nodes) > 0 ? 0 : 1
-}
-
-# ✅ Create Node Group If It Doesn't Exist
+# ✅ CREATE EKS Node Group
 resource "aws_eks_node_group" "fastfood_nodes" {
-  count = length(data.aws_eks_node_group.existing_node_group) > 0 ? 0 : 1
-
-  cluster_name    = "pollos-hermanos"
+  cluster_name    = aws_eks_cluster.fastfood_cluster.name
   node_group_name = "fastfood-nodes"
   node_role_arn   = data.aws_iam_role.existing_eks_node_group_role.arn
   subnet_ids      = [
