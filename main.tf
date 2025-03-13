@@ -2,19 +2,35 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# ✅ Use Existing VPC & Subnets
+# ✅ Use Existing VPC
 data "aws_vpc" "existing_vpc" {
   id = "vpc-035823898b0432060"
 }
 
-data "aws_subnet" "existing_subnet_1" {
-  id = "subnet-0e8a9c57e24921ad2"
+# ✅ Create Public Subnets with Auto-Assign Public IP
+resource "aws_subnet" "eks_subnet_1" {
+  vpc_id                  = data.aws_vpc.existing_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true  # ✅ Enables Public IP Assignment
+
+  tags = {
+    Name = "eks-subnet-1"
+  }
 }
 
-data "aws_subnet" "existing_subnet_2" {
-  id = "subnet-054f5e7046e524dc7"
+resource "aws_subnet" "eks_subnet_2" {
+  vpc_id                  = data.aws_vpc.existing_vpc.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true  # ✅ Enables Public IP Assignment
+
+  tags = {
+    Name = "eks-subnet-2"
+  }
 }
 
+# ✅ IAM Roles for EKS Cluster and Nodes
 data "aws_iam_role" "existing_eks_cluster_role" {
   name = "eks-cluster-role"
 }
@@ -23,20 +39,22 @@ data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
 }
 
-# ✅ CREATE EKS Cluster (No Dependency on `data` Lookup)
+# ✅ Create EKS Cluster
 resource "aws_eks_cluster" "fastfood_cluster" {
   name     = "pollos-hermanos"
   role_arn = data.aws_iam_role.existing_eks_cluster_role.arn
 
   vpc_config {
     subnet_ids = [
-      data.aws_subnet.existing_subnet_1.id,
-      data.aws_subnet.existing_subnet_2.id
+      aws_subnet.eks_subnet_1.id,
+      aws_subnet.eks_subnet_2.id
     ]
+    endpoint_public_access = true
+    endpoint_private_access = false
   }
 }
 
-# ✅ CREATE Security Group for Nodes
+# ✅ Security Group for EKS Worker Nodes
 resource "aws_security_group" "eks_nodes_sg" {
   vpc_id = data.aws_vpc.existing_vpc.id
 
@@ -77,14 +95,14 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 }
 
-# ✅ CREATE EKS Node Group
+# ✅ Create EKS Node Group (Worker Nodes)
 resource "aws_eks_node_group" "fastfood_nodes" {
   cluster_name    = aws_eks_cluster.fastfood_cluster.name
   node_group_name = "fastfood-nodes"
   node_role_arn   = data.aws_iam_role.existing_eks_node_group_role.arn
   subnet_ids      = [
-    data.aws_subnet.existing_subnet_1.id,
-    data.aws_subnet.existing_subnet_2.id
+    aws_subnet.eks_subnet_1.id,
+    aws_subnet.eks_subnet_2.id
   ]
 
   scaling_config {
