@@ -1,36 +1,37 @@
+terraform {
+  required_version = ">= 1.0.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
 provider "aws" {
   region = "us-east-1"
 }
 
-# ✅ Use Existing VPC
+#############################################
+# VPC
+#############################################
 data "aws_vpc" "existing_vpc" {
   id = "vpc-035823898b0432060"
 }
 
-# ✅ Use Existing Subnets Instead of Creating New Ones
-data "aws_subnet" "existing_subnet_1" {
-  filter {
-    name   = "tag:Name"
-    values = ["eks-subnet-1"]
-  }
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.existing_vpc.id]
-  }
+#############################################
+# Subnet
+#############################################
+locals {
+  rds_subnet_ids = [
+    "subnet-0e8a9c57e24921ad2",
+    "subnet-054f5e7046e524dc7"
+  ]
 }
 
-data "aws_subnet" "existing_subnet_2" {
-  filter {
-    name   = "tag:Name"
-    values = ["eks-subnet-2"]
-  }
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.existing_vpc.id]
-  }
-}
-
-# ✅ IAM Roles for EKS Cluster and Nodes
+#############################################
+# IAM Role
+#############################################
 data "aws_iam_role" "existing_eks_cluster_role" {
   name = "eks-cluster-role"
 }
@@ -39,25 +40,27 @@ data "aws_iam_role" "existing_eks_node_group_role" {
   name = "eks-node-group-role"
 }
 
-# ✅ Create EKS Cluster
+#############################################
+# Create EKS Cluster
+#############################################
 resource "aws_eks_cluster" "fastfood_cluster" {
   name     = "pollos-hermanos"
   role_arn = data.aws_iam_role.existing_eks_cluster_role.arn
 
   vpc_config {
-    subnet_ids              = [
-      data.aws_subnet.existing_subnet_1.id,
-      data.aws_subnet.existing_subnet_2.id
-    ]
+    subnet_ids              = local.rds_subnet_ids
     endpoint_public_access  = true
     endpoint_private_access = false
   }
 }
 
-# ✅ Security Group for EKS Worker Nodes
+#############################################
+# Security Group for EKS Worker Nodes
+#############################################
 resource "aws_security_group" "eks_nodes_sg" {
   vpc_id = data.aws_vpc.existing_vpc.id
 
+  # Allow nodes to communicate with each other
   ingress {
     from_port   = 0
     to_port     = 0
@@ -66,6 +69,7 @@ resource "aws_security_group" "eks_nodes_sg" {
     description = "Allow nodes to communicate with each other"
   }
 
+  # Allow worker nodes to talk to EKS API over HTTPS
   ingress {
     from_port   = 443
     to_port     = 443
@@ -74,6 +78,7 @@ resource "aws_security_group" "eks_nodes_sg" {
     description = "Allow worker nodes to talk to EKS"
   }
 
+  # Allow pod-to-pod communication
   ingress {
     from_port   = 1025
     to_port     = 65535
@@ -82,6 +87,7 @@ resource "aws_security_group" "eks_nodes_sg" {
     description = "Allow Kubernetes pod-to-pod communication"
   }
 
+  # Allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -95,15 +101,15 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 }
 
-# ✅ Create EKS Node Group (Worker Nodes)
+#############################################
+# Create EKS Node Group
+#############################################
 resource "aws_eks_node_group" "fastfood_nodes" {
   cluster_name    = aws_eks_cluster.fastfood_cluster.name
   node_group_name = "fastfood-nodes"
   node_role_arn   = data.aws_iam_role.existing_eks_node_group_role.arn
-  subnet_ids      = [
-    data.aws_subnet.existing_subnet_1.id,
-    data.aws_subnet.existing_subnet_2.id
-  ]
+
+  subnet_ids = local.rds_subnet_ids
 
   scaling_config {
     desired_size = 2
