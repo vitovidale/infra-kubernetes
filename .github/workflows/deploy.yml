@@ -1,10 +1,7 @@
 name: Deploy Infra to AWS (EKS)
 
 on:
-  push:
-    branches:
-      - main  # Deploy infra only when merging to main
-  workflow_dispatch:  # Allow manual deployment trigger
+  workflow_dispatch:
 
 jobs:
   deploy-infra:
