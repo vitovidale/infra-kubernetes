@@ -1,9 +1,6 @@
 name: Deploy Infra to AWS (EKS)
 
 on:
-  push:
-    branches:
-      - main  
   workflow_dispatch:  
 
 jobs:
