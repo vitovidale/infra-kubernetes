@@ -24,4 +24,5 @@ O provisionamento da infraestrutura é feito automaticamente via GitHub Actions 
 
 ### Topologia
 
-![SOATG57 drawio](https://github.com/user-attachments/assets/4bba5ab2-05e9-4cdf-9af1-b66ef27461a4)
+
+![Diagrama sem nome drawio](https://github.com/user-attachments/assets/209d88f1-a3e2-4ff9-9ab2-cc71c9f2301f)
